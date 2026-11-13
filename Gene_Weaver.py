@@ -4,6 +4,7 @@ Run from PowerShell or a VS Code terminal:
 
     py Gene_Weaver.py sample.fasta
     py Gene_Weaver.py sample.fasta --motif ATG --json
+    py Gene_Weaver.py sample.fasta --output report.json
 
 This starter analyzes sequences only. It does not make medical or diagnostic claims.
 """
@@ -126,6 +127,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--json", action="store_true", help="print the summary as JSON"
     )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        help="save the summary as a JSON file at this path",
+    )
     return parser
 
 
@@ -164,8 +170,18 @@ def main(argv: Sequence[str] | None = None) -> int:
     except (OSError, UnicodeError, ValueError) as error:
         parser.error(str(error))
 
+    json_report = json.dumps(reports, indent=2)
+    if args.output:
+        try:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(json_report + "\n", encoding="utf-8")
+        except OSError as error:
+            parser.error(f"could not save JSON report: {error}")
+
     if args.json:
-        print(json.dumps(reports, indent=2))
+        print(json_report)
+    elif args.output:
+        print(f"Saved JSON report to {args.output}")
     else:
         print_text_report(reports)
     return 0
